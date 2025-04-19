@@ -57,13 +57,13 @@ dev = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/mlx_omni_server"]
+include = ["src/mlxengine"]
 
 [tool.hatch.build.targets.wheel]
-include = ["src/mlx_omni_server"]
+include = ["src/mlxengine"]
 
 [tool.hatch.build.targets.wheel.sources]
-"src/mlx_omni_server" = "mlx_omni_server"
+"src/mlxengine" = "mlxengine"
 
 [build-system]
 requires = ["hatchling"]
