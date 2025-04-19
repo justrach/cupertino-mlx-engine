@@ -18,6 +18,8 @@ from .schema import (
     # Import the chunk types if needed for type hints, though Model check is key
     # ChatCompletionChunk,
     # ChatCompletionChunkChoice
+    ResponseFormat, # Import ResponseFormat
+    JsonSchemaFormat, # Import JsonSchemaFormat for nested deserialization
 )
 from .text_models import BaseTextModel
 
@@ -60,27 +62,69 @@ async def create_chat_completion(request: Request):
     """Create a chat completion"""
     try:
         body = await request.json()
-        chat_request = ChatCompletionRequest(**body)
+        chat_request_initial = ChatCompletionRequest(**body) # Initial parse
 
         # --- Explicit Deserialization for Nested Models ---
-        if chat_request.messages:
-            try:
-                 chat_request_data = chat_request.dict()
-            except AttributeError:
-                 chat_request_data = {f: getattr(chat_request, f) for f in chat_request.__fields__} # Example fallback
+        # Use .dict() or fallback to get a mutable dictionary representation
+        try:
+             chat_request_data = chat_request_initial.dict()
+        except AttributeError:
+             # Fallback if .dict() doesn't exist
+             # This assumes fields are accessible attributes
+             # Adjust if satya.Model stores fields differently (e.g., __fields__)
+             fields = getattr(chat_request_initial, '__fields__', None)
+             if fields:
+                 chat_request_data = {f: getattr(chat_request_initial, f) for f in fields}
+             else:
+                 # If no obvious way to get fields, try vars() as a last resort
+                 # This might include internal attributes, use with caution
+                 chat_request_data = vars(chat_request_initial)
 
-            raw_messages = chat_request_data.get('messages', [])
+        # Deserialize 'messages'
+        raw_messages = chat_request_data.get('messages', [])
+        if raw_messages:
             typed_messages = []
-            if raw_messages:
-                for msg in raw_messages:
-                    if isinstance(msg, dict):
-                        typed_messages.append(ChatMessage(**msg))
-                    elif isinstance(msg, ChatMessage):
-                        typed_messages.append(msg)
-                    # else: handle unexpected types if needed
-
+            for msg in raw_messages:
+                if isinstance(msg, dict):
+                    typed_messages.append(ChatMessage(**msg))
+                elif isinstance(msg, ChatMessage): # Already typed
+                    typed_messages.append(msg)
             chat_request_data['messages'] = typed_messages
-            chat_request = ChatCompletionRequest(**chat_request_data)
+
+        # Deserialize 'response_format' and its nested 'json_schema'
+        raw_response_format = chat_request_data.get('response_format')
+        if isinstance(raw_response_format, dict):
+            # First, handle the nested 'json_schema' if it exists and is a dict
+            nested_json_schema = raw_response_format.get('json_schema')
+            if isinstance(nested_json_schema, dict):
+                try:
+                    # Convert the nested dict to JsonSchemaFormat model
+                    raw_response_format['json_schema'] = JsonSchemaFormat(**nested_json_schema)
+                except Exception as e_jsf:
+                    print(f"Error deserializing nested json_schema: {e_jsf}")
+                    raise ValueError(f"Invalid json_schema structure within response_format: {nested_json_schema}") from e_jsf
+            elif isinstance(nested_json_schema, JsonSchemaFormat):
+                # Already typed, no action needed
+                pass
+
+            # Now, instantiate the outer ResponseFormat model
+            try:
+                chat_request_data['response_format'] = ResponseFormat(**raw_response_format)
+            except Exception as e_rf:
+                print(f"Error deserializing response_format: {e_rf}")
+                raise ValueError(f"Invalid response_format structure: {raw_response_format}") from e_rf
+        elif isinstance(raw_response_format, ResponseFormat):
+            # Already typed, check nested just in case (though unlikely if outer is typed)
+            if isinstance(raw_response_format.json_schema, dict):
+                 try:
+                     raw_response_format.json_schema = JsonSchemaFormat(**raw_response_format.json_schema)
+                 except Exception as e_jsf:
+                     print(f"Error deserializing nested json_schema within existing ResponseFormat: {e_jsf}")
+                     raise ValueError(f"Invalid json_schema dict within ResponseFormat object: {raw_response_format.json_schema}") from e_jsf
+            # No further action needed if both outer and nested are typed
+
+        # Re-create the ChatCompletionRequest with fully typed nested models
+        chat_request = ChatCompletionRequest(**chat_request_data)
         # --- End Explicit Deserialization ---
 
         text_model = _create_text_model(
