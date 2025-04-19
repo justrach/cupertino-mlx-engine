@@ -5,6 +5,8 @@ from mlx_lm.tokenizer_utils import TokenizerWrapper
 
 # Assuming these imports point to your satya.Model definitions
 from ...schema import ChatMessage, Role, Tool, ToolCall, ToolChoice, ToolChoiceType
+# Import the recursive helper
+from ....utils.serialization import recursive_to_dict
 
 
 class ChatTokenizer(ABC):
@@ -34,9 +36,12 @@ class ChatTokenizer(ABC):
             schema_tools = []
             for tool in tools:
                 # Assuming satya.Model has a .dict() method
-                raw_tool_dict = tool.dict()
-                # Manually filter out None values
-                schema_tools.append({k: v for k, v in raw_tool_dict.items() if v is not None})
+                # raw_tool_dict = tool.dict() # Old way
+                # Recursively convert the entire tool object to a dict
+                serializable_tool_dict = recursive_to_dict(tool)
+                # Manually filter out None values at the top level
+                # schema_tools.append({k: v for k, v in raw_tool_dict.items() if v is not None})
+                schema_tools.append({k: v for k, v in serializable_tool_dict.items() if v is not None})
 
 
         # Determine if the last message needs prefilling based on its role
@@ -47,8 +52,14 @@ class ChatTokenizer(ABC):
             # Use .dict() and manually exclude None for each message
             # Assuming satya.Model has a .dict() method
             raw_msg_dict = message.dict()
-            # Manually filter out None values
-            msg_dict = {k: v for k, v in raw_msg_dict.items() if v is not None}
+            # Manually filter out None values, BUT ensure 'content' always exists
+            # msg_dict = {k: v for k, v in raw_msg_dict.items() if v is not None}
+            msg_dict = {}
+            for k, v in raw_msg_dict.items():
+                if v is not None:
+                    msg_dict[k] = v
+                elif k == 'content': # Specifically keep 'content' even if None
+                    msg_dict[k] = "" # Use empty string instead of None for template compatibility
 
             # Handle potential list content (assuming structure from original code)
             content = msg_dict.get("content")

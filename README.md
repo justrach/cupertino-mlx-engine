@@ -124,6 +124,120 @@ image_response = client.images.generate(
     n=1,
     size="512x512"
 )
+
+# Tool Calling Example
+import json
+from datetime import datetime
+from openai import OpenAI
+
+model = "mlx-community/QwQ-32B-4bit" # Make sure this model supports tool calling
+client = OpenAI(
+    base_url="http://localhost:10240/v1",
+    api_key="not-needed"
+)
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_delivery_date",
+            "description": "Get the delivery date for a customer's order. Call this whenever you need to know the delivery date, for example when a customer asks 'Where is my package'",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "order_id": {
+                        "type": "string",
+                        "description": "The customer's order ID.",
+                    },
+                },
+                "required": ["order_id"],
+                "additionalProperties": False,
+            },
+        }
+    }
+]
+
+messages = [
+    {
+        "role": "system",
+        "content": "You are a helpful customer support assistant. Use the supplied tools to assist the user."
+    },
+    {
+        "role": "user",
+        "content": "Hi, can you tell me the delivery date for my order?"
+    },
+    {
+        "role": "assistant",
+        "content": "Hi there! I can help with that. Can you please provide your order ID?"
+    },
+    {
+        "role": "user",
+        "content": "i think it is order_12345"
+    }
+]
+
+# First API call: The model decides to use the tool
+completion = client.chat.completions.create(
+    model=model,
+    messages=messages,
+    tools=tools,
+)
+
+response_message = completion.choices[0].message
+print("Assistant Response (Tool Call):")
+print(response_message)
+
+# Check if the model wants to call a tool
+if response_message.tool_calls:
+    print("\nTool Calls Detected:")
+    print(response_message.tool_calls)
+
+    # Append the assistant's message (with tool calls) to the conversation
+    messages.append(response_message)
+
+    # --- Simulate executing the function and getting the result ---
+    # In a real application, you would execute the function based on the name and arguments
+    tool_call = response_message.tool_calls[0]
+    function_name = tool_call.function.name
+    function_args = json.loads(tool_call.function.arguments)
+    
+    if function_name == "get_delivery_date":
+        order_id = function_args.get("order_id")
+        # Simulate fetching data
+        delivery_date = datetime.now()
+        function_response = {
+            "order_id": order_id,
+            "delivery_date": delivery_date.strftime('%Y-%m-%d %H:%M:%S')
+        }
+    else:
+        # Handle other potential function calls if needed
+        function_response = {"error": "Unknown function"}
+
+    # Append the tool response message to the conversation
+    function_call_result_message = {
+        "role": "tool",
+        "content": json.dumps(function_response),
+        "tool_call_id": tool_call.id
+    }
+    messages.append(function_call_result_message)
+    
+    print("\nTool Response Message (Appended):")
+    print(function_call_result_message)
+
+    # Second API call: Send the tool response back to the model
+    print("\nSending tool response back to model...")
+    completion_with_tool_response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools=tools,
+    )
+    
+    final_assistant_message = completion_with_tool_response.choices[0].message
+    print("\nFinal Assistant Response:")
+    print(final_assistant_message)
+else:
+    print("\nAssistant Response (No Tool Call):")
+    print(response_message.content)
 ```
 
 You can view more examples in [examples](examples).

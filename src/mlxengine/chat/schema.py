@@ -152,7 +152,7 @@ class JsonSchemaFormat(Model):
         pattern="^[a-zA-Z0-9_-]+$",
         max_length=64
     )
-    schema_def: Optional[Dict[str, Any]] = Field(
+    schema: Optional[Dict[str, Any]] = Field(
         default=None, description="The schema for the response format"
     )
     strict: Optional[bool] = Field(

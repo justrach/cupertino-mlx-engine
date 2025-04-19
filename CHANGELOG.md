@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+-   **Fixed serialization errors for `transformers` chat template.**
+    -   Addressed `TypeError: Object of type Function is not JSON serializable` by ensuring `Tool` objects passed to `apply_chat_template` are fully serialized to dictionaries using `recursive_to_dict`.
+    -   Resolved `UndefinedError: 'dict object' has no attribute 'content'` by ensuring the `content` key exists in message dictionaries passed to the template, even if `None`.
+    -   Fixed `UndefinedError: 'None' has no attribute 'split'` by setting `content` to an empty string (`""`) instead of `None` for messages without content (like tool calls) to satisfy the template's expectation of a string.
+-   **Resolved `AttributeError` for structured output (`json_schema`).**
+    -   The initial error (`'dict' object has no attribute 'json_schema'`) occurred because the `response_format` field in the request was parsed as a dictionary, not a `ResponseFormat` model instance.
+    -   A subsequent error (`'dict' object has no attribute 'schema_def'` or `'schema'`) occurred because the nested `json_schema` field within `response_format` was *also* being treated as a dictionary, and there was a field name mismatch (`schema_def` in the model vs. `schema` in the request/code).
+    -   The fix involved:
+        1.  Renaming the `schema_def` field in the `JsonSchemaFormat` model (in `src/mlxengine/chat/schema.py`) to `schema` to align with the expected input and usage.
+        2.  Updating the code using this field (`src/mlxengine/chat/mlx/outlines_logits_processor.py`) to access `.schema`.
+        3.  Implementing explicit, recursive deserialization in the chat router (`src/mlxengine/chat/router.py`) to ensure both `response_format` and its nested `json_schema` field are correctly converted from dictionaries to their respective `satya.Model` instances (`ResponseFormat` and `JsonSchemaFormat`) before being used.
+
 ## [0.0.2] - 2025-04-19
 
 ### Changed
