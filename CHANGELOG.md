@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         2.  Updating the code using this field (`src/mlxengine/chat/mlx/outlines_logits_processor.py`) to access `.schema`.
         3.  Implementing explicit, recursive deserialization in the chat router (`src/mlxengine/chat/router.py`) to ensure both `response_format` and its nested `json_schema` field are correctly converted from dictionaries to their respective `satya.Model` instances (`ResponseFormat` and `JsonSchemaFormat`) before being used.
 
+### Added
+- Example scripts (`examples/interactive_multi_tool_calling.py`, `examples/clean_multi_tool_calling.py`) demonstrating multi-turn tool calling with streaming and client-side parsing fallback.
+- `lessonsLearned.md` to document challenges and solutions.
+
+### Changed
+- Updated `decode` methods in `src/mlxengine/chat/mlx/tools/mistral.py`, `llama3.py`, and `hugging_face.py` to use regex for parsing multiple, sequential tool calls from the complete model output string.
+- Implemented client-side regex parsing in example scripts (`interactive_multi_tool_calling.py`, `clean_multi_tool_calling.py`) to handle cases where the server streams tool calls as raw text content, ensuring robustness across different model/server behaviors.
+
 ## [0.0.2] - 2025-04-19
 
 ### Changed
