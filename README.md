@@ -1,10 +1,12 @@
-# MLX Omni Server
+# MLX Engine
 
-[![image](https://img.shields.io/pypi/v/mlx-omni-server.svg)](https://pypi.python.org/pypi/mlx-omni-server)
+[![image](https://img.shields.io/pypi/v/mlxengine.svg)](https://pypi.python.org/pypi/mlxengine)
 
 ![alt text](docs/banner.png)
 
-MLX Omni Server is a local inference server powered by Apple's MLX framework, specifically designed for Apple Silicon (M-series) chips. It implements
+> **Note:** MLX Engine is a fork of [MLX Omni Server](https://github.com/madroidmaq/mlx-omni-server) by [@madroidmaq](https://github.com/madroidmaq), refactored to use TurboAPI and enhance maintainability.
+
+MLX Engine is a local inference server powered by Apple's MLX framework, specifically designed for Apple Silicon (M-series) chips. It implements
 OpenAI-compatible API endpoints, enabling seamless integration with existing OpenAI SDK clients while leveraging the power of local ML inference.
 
 ## Features
@@ -42,12 +44,12 @@ The server implements OpenAI-compatible endpoints:
 
 ```bash
 # Install using pip
-pip install mlx-omni-server
+pip install mlxengine
 ```
 
 ## Quick Start
 
-There are two ways to use MLX Omni Server:
+There are two ways to use MLX Engine:
 
 ### Method 1: Using the HTTP Server
 
@@ -55,12 +57,12 @@ There are two ways to use MLX Omni Server:
 
 ```bash
 # If installed via pip as a package
-mlx-omni-server
+mlxengine
 ```
 
-You can use `--port` to specify a different port, such as: `mlx-omni-server --port 10240`. The default port is 10240.
+You can use `--port` to specify a different port, such as: `mlxengine --port 10240`. The default port is 10240.
 
-You can view more startup parameters by using `mlx-omni-server --help`.
+You can view more startup parameters by using `mlxengine --help`.
 
 2. Configure the OpenAI client to use your local server:
 
@@ -80,8 +82,8 @@ For development or testing, you can use TestClient to interact directly with the
 
 ```python
 from openai import OpenAI
-from fastapi.testclient import TestClient
-from mlx_omni_server.main import app
+from fastapi.testclient import TestClient # TODO: Update this import once TurboAPI has TestClient
+from mlxengine.main import app
 
 # Use TestClient to interact directly with the application
 client = OpenAI(
@@ -105,7 +107,7 @@ chat_completion = client.chat.completions.create(
 # Text-to-Speech Example
 response = client.audio.speech.create(
     model="lucasnewman/f5-tts-mlx",
-    input="Hello, welcome to MLX Omni Server!"
+    input="Hello, welcome to MLX Engine!"
 )
 
 # Speech-to-Text Example
@@ -128,7 +130,7 @@ You can view more examples in [examples](examples).
 
 ## Contributing
 
-We welcome contributions! If you're interested in contributing to MLX Omni Server, please check out our [Development Guide](docs/development_guide.md)
+We welcome contributions! If you're interested in contributing to MLX Engine, please check out our [Development Guide](docs/development_guide.md)
 for detailed information about:
 
 - Setting up the development environment
@@ -146,11 +148,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with [MLX](https://github.com/ml-explore/mlx) by Apple
 - API design inspired by [OpenAI](https://openai.com)
-- Uses [FastAPI](https://fastapi.tiangolo.com/) for the server implementation
+- Uses [TurboAPI](https://github.com/rachpradhan/turboapi) for the server implementation
 - Chat(text generation) by [mlx-lm](https://github.com/ml-explore/mlx-examples/tree/main/llms/mlx_lm)
 - Image generation by [diffusionkit](https://github.com/argmaxinc/DiffusionKit)
 - Text-to-Speech by [lucasnewman/f5-tts-mlx](https://github.com/lucasnewman/f5-tts-mlx)
 - Speech-to-Text by [mlx-whisper](https://github.com/ml-explore/mlx-examples/blob/main/whisper/README.md)
+- Forked from [MLX Omni Server](https://github.com/madroidmaq/mlx-omni-server) by [@madroidmaq](https://github.com/madroidmaq)
 
 ## Disclaimer
 
@@ -159,4 +162,4 @@ Apple's MLX framework.
 
 ## Star History 🌟
 
-[![Star History Chart](https://api.star-history.com/svg?repos=madroidmaq/mlx-omni-server&type=Date)](https://star-history.com/#madroidmaq/mlx-omni-server&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=rachpradhan/mlxengine&type=Date)](https://star-history.com/#rachpradhan/mlxengine&Date)
