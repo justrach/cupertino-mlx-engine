@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   **Fixed serialization errors for `transformers` chat template.**
+    -   Addressed `TypeError: Object of type Function is not JSON serializable` by ensuring `Tool` objects passed to `apply_chat_template` are fully serialized to dictionaries using `recursive_to_dict`.
+    -   Resolved `UndefinedError: 'dict object' has no attribute 'content'` by ensuring the `content` key exists in message dictionaries passed to the template, even if `None`.
+    -   Fixed `UndefinedError: 'None' has no attribute 'split'` by setting `content` to an empty string (`""`) instead of `None` for messages without content (like tool calls) to satisfy the template's expectation of a string.
 -   **Resolved `AttributeError` for structured output (`json_schema`).**
     -   The initial error (`'dict' object has no attribute 'json_schema'`) occurred because the `response_format` field in the request was parsed as a dictionary, not a `ResponseFormat` model instance.
     -   A subsequent error (`'dict' object has no attribute 'schema_def'` or `'schema'`) occurred because the nested `json_schema` field within `response_format` was *also* being treated as a dictionary, and there was a field name mismatch (`schema_def` in the model vs. `schema` in the request/code).
