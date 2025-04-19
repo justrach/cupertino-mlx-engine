@@ -2,20 +2,39 @@ import argparse
 import os
 
 import uvicorn
-from fastapi import FastAPI
+# Replace FastAPI with TurboAPI
+from turboapi import TurboAPI
+# from fastapi import FastAPI
 
-from .middleware.logging import RequestResponseLoggingMiddleware
-from .routers import api_router
+# Remove FastAPI middleware import
+# from .middleware.logging import RequestResponseLoggingMiddleware
+# Import the dictionary of sub-apps to mount
+from .routers import sub_apps
 
-app = FastAPI(title="MLX Omni Server")
+# Instantiate the main TurboAPI application
+app = TurboAPI(title="MLX Omni Server - TurboAPI")
 
-# Add request/response logging middleware with custom levels
-app.add_middleware(
-    RequestResponseLoggingMiddleware,
-    # exclude_paths=["/health"]
-)
+# Remove FastAPI middleware usage
+# app.add_middleware(
+#     RequestResponseLoggingMiddleware,
+#     # exclude_paths=["/health"]
+# )
 
-app.include_router(api_router)
+# Remove FastAPI router inclusion
+# app.include_router(api_router)
+
+# Mount the sub-applications from routers.py
+# This assumes TurboAPI has an 'app.mount(prefix, sub_app)' method.
+# If TurboAPI uses a different mechanism, this part needs adjustment.
+for prefix, sub_app in sub_apps.items():
+    try:
+        app.mount(prefix, sub_app)
+        print(f"Mounted {sub_app.title if hasattr(sub_app, 'title') else 'sub-app'} at {prefix}")
+    except AttributeError:
+        print(f"Error: Could not mount sub-app at {prefix}. "
+              f"Does TurboAPI support 'app.mount()'? Check TurboAPI documentation.")
+    except Exception as e:
+        print(f"Error mounting sub-app at {prefix}: {e}")
 
 
 def build_parser():
@@ -55,14 +74,19 @@ def start():
     args = parser.parse_args()
 
     # Set log level through environment variable
-    os.environ["MLX_OMNI_LOG_LEVEL"] = args.log_level
+    os.environ["MLX_OMNI_LOG_LEVEL"] = args.log_level # Keep this, might be useful
 
-    # Start server with uvicorn
+    # Update uvicorn run command to point to the correct module:app
+    # Make sure your project structure allows importing mlxengine.main
+    # If running from the root of the project, this might need adjustment
+    # based on how you structure your runnable application.
+    # Assuming `src` is in PYTHONPATH or running from within `src`.
     uvicorn.run(
-        "mlx_omni_server.main:app",
+        "mlxengine.main:app", # Changed from "mlx_omni_server.main:app"
         host=args.host,
         port=args.port,
         log_level=args.log_level,
         use_colors=True,
         workers=args.workers,
+        # Add reload=True for development if needed
     )

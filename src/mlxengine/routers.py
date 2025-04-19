@@ -1,14 +1,26 @@
-from fastapi import APIRouter
+# Remove FastAPI import
+# from fastapi import APIRouter
 
-from .chat import router as chat_router
-from .chat.models import models
-from .images import images
-from .stt import stt as stt_router
-from .tts import tts as tts_router
+# Import TurboAPI app instances from submodules
+from .chat.router import chat_app
+# from .chat.models import models # Assuming models routes are part of chat_app or another app
+# from .images import images # Assuming images routes are in images_app
+# from .stt import stt as stt_router # Assuming stt routes are in stt_app
+# from .tts import tts as tts_router # Assuming tts routes are in tts_app
 
-api_router = APIRouter()
-api_router.include_router(stt_router.router)
-api_router.include_router(tts_router.router)
-api_router.include_router(models.router)
-api_router.include_router(images.router)
-api_router.include_router(chat_router.router)
+# Placeholder imports for other modules (assuming they follow the same pattern)
+# Replace these with actual imports when other modules are converted
+# from .stt.router import stt_app
+# from .tts.router import tts_app
+# from .images.router import images_app
+# from .models.router import models_app # If models has its own routes
+
+# Collect the sub-apps to be mounted by main.py
+# We'll use a dictionary mapping the desired mount prefix to the app instance
+sub_apps = {
+    # "/stt": stt_app, # Uncomment when stt_app is available
+    # "/tts": tts_app, # Uncomment when tts_app is available
+    # "/models": models_app, # Uncomment when models_app is available
+    # "/images": images_app, # Uncomment when images_app is available
+    "/chat": chat_app, # Using /chat prefix for chat routes
+}
