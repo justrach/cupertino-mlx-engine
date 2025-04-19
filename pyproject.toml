@@ -1,6 +1,6 @@
 [project]
 name = "mlxengine"
-version = "0.0.1"
+version = "0.0.2"
 description = "Local MLX Engine"
 authors = [{ name = "justrach", email = "me@justrach.com" }]
 requires-python = ">=3.11,<3.12"
