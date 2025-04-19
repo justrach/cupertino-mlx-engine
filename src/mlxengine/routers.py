@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from turboapi import APIRouter
 
 from .chat import router as chat_router
 from .chat.models import models

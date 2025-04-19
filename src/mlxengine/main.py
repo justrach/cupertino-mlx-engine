@@ -2,18 +2,19 @@ import argparse
 import os
 
 import uvicorn
-from fastapi import FastAPI
+from starlette.middleware import Middleware
+from turboapi import TurboAPI
 
 from .middleware.logging import RequestResponseLoggingMiddleware
 from .routers import api_router
 
-app = FastAPI(title="MLX Omni Server")
+# Create a list of middleware
+middlewares = [
+    Middleware(RequestResponseLoggingMiddleware)
+    # Add other middleware instances here if needed
+]
 
-# Add request/response logging middleware with custom levels
-app.add_middleware(
-    RequestResponseLoggingMiddleware,
-    # exclude_paths=["/health"]
-)
+app = TurboAPI(title="MLX Omni Server", middleware=middlewares)
 
 app.include_router(api_router)
 
@@ -59,7 +60,7 @@ def start():
 
     # Start server with uvicorn
     uvicorn.run(
-        "mlx_omni_server.main:app",
+        "mlxengine.main:app",
         host=args.host,
         port=args.port,
         log_level=args.log_level,
