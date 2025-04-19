@@ -80,6 +80,7 @@ class Role(str, Enum):
 class ChatMessage(Model):
     role: Role
     content: Optional[Union[str, List[Dict[str, str]]]] = Field(default=None)
+    thought: Optional[str] = Field(default=None)  # Optional field for model's thought process
     name: Optional[str] = Field(default=None)
     tool_calls: Optional[List[ToolCall]] = Field(default=None)
     tool_call_id: Optional[str] = Field(default=None)
@@ -195,6 +196,9 @@ class ChatCompletionRequest(Model):
     tool_choice: Optional[ToolChoiceType] = Field(default=None)
     response_format: Optional[ResponseFormat] = Field(default=None)
 
+    # Custom parameter for thinking models
+    thinkingModel: Optional[bool] = Field(default=False)
+
     def get_extra_params(self) -> Dict[str, Any]:
         """Get all extra parameters that aren't part of the standard OpenAI API."""
         standard_fields: Set[str] = {
@@ -217,6 +221,7 @@ class ChatCompletionRequest(Model):
             "tool_choice",
             "stream_options",
             "response_format",
+            "thinkingModel",
         }
         all_fields = vars(self)
         return {k: v for k, v in all_fields.items() if k not in standard_fields}
