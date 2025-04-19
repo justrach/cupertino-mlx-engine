@@ -4,8 +4,8 @@ from unittest.mock import Mock
 
 from mlx_lm.tokenizer_utils import TokenizerWrapper
 
-from mlx_omni_server.chat.mlx.tools.hugging_face import HuggingFaceChatTokenizer
-from mlx_omni_server.chat.schema import Role
+from mlxengine.chat.mlx.tools.hugging_face import HuggingFaceChatTokenizer
+from mlxengine.chat.schema import Role
 
 
 class TestHuggingFaceChatTokenizer(unittest.TestCase):

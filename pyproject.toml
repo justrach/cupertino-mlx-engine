@@ -1,8 +1,8 @@
 [project]
-name = "mlx-omni-server"
-version = "0.3.5"
-description = "MLX Omni Server is a server that provides OpenAI-compatible APIs using Apple's MLX framework."
-authors = [{ name = "madroid", email = "madroidmaq@gmail.com" }]
+name = "mlxengine"
+version = "0.0.1"
+description = "Local MLX Engine"
+authors = [{ name = "justrach", email = "me@justrach.com" }]
 requires-python = ">=3.11,<3.12"
 readme = "README.md"
 license = "MIT"
@@ -30,7 +30,7 @@ dependencies = [
     "uvicorn>=0.34.0,<0.35",
     "numba>=0.57.0",
     "mlx-whisper>=0.4.1,<0.5",
-    "mlx-lm>=0.22.4,<0.23",
+    "mlx-lm>=0.23.0",
     "huggingface-hub>=0.29.1,<0.30",
     "diffusionkit>=0.5.1,<0.6",
     "sse-starlette>=2.1.3,<3",
@@ -38,13 +38,14 @@ dependencies = [
     "aiohttp>=3.11.11,<4",
     "rich>=13.9.4",
     "openai==1.66.3",
+    "satya>=0.2.14",
 ]
 
 [project.urls]
-Repository = "https://github.com/madroidmaq/mlx-omni-server"
+Repository = "https://github.com/justrach/mlxengine"
 
 [project.scripts]
-mlx-omni-server = "mlx_omni_server.main:start"
+mlxengine = "mlxengine.main:start"
 
 [dependency-groups]
 dev = [

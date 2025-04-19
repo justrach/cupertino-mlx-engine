@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from mlx_lm.tokenizer_utils import TokenizerWrapper
 
-from mlx_omni_server.utils.logger import logger
+from mlxengine.utils.logger import logger
 
 from ...schema import (
     ChatMessage,
