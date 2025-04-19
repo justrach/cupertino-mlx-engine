@@ -8,7 +8,9 @@ from turboapi import TurboAPI
 
 # Remove FastAPI middleware import
 # from .middleware.logging import RequestResponseLoggingMiddleware
-# Import the dictionary of sub-apps to mount
+# Import the route handler function directly
+from .chat.router import create_chat_completion
+# Import the dictionary of sub-apps to mount (excluding chat)
 from .routers import sub_apps
 
 # Instantiate the main TurboAPI application
@@ -23,16 +25,23 @@ app = TurboAPI(title="MLX Omni Server - TurboAPI")
 # Remove FastAPI router inclusion
 # app.include_router(api_router)
 
+# Define chat routes directly on the main app instance
+@app.post("/chat/completions")
+@app.post("/v1/chat/completions")
+async def main_create_chat_completion(request):
+    # Call the original handler function
+    return await create_chat_completion(request)
+
 # Mount the sub-applications from routers.py
-# This assumes TurboAPI has an 'app.mount(prefix, sub_app)' method.
-# If TurboAPI uses a different mechanism, this part needs adjustment.
+# Using app.mount as confirmed by TurboAPI documentation for sub-applications.
+# This loop will now be empty or handle other modules if they exist
 for prefix, sub_app in sub_apps.items():
     try:
-        app.mount(prefix, sub_app)
-        print(f"Mounted {sub_app.title if hasattr(sub_app, 'title') else 'sub-app'} at {prefix}")
+        app.mount(prefix, sub_app) # Use mount for TurboAPI sub-apps
+        print(f"Mounted sub-app: {sub_app.title if hasattr(sub_app, 'title') else 'sub-app'} at {prefix}")
     except AttributeError:
         print(f"Error: Could not mount sub-app at {prefix}. "
-              f"Does TurboAPI support 'app.mount()'? Check TurboAPI documentation.")
+              f"Does TurboAPI instance have a 'mount()' method? Check API.")
     except Exception as e:
         print(f"Error mounting sub-app at {prefix}: {e}")
 

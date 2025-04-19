@@ -1,23 +1,18 @@
 import json
 from typing import Generator, AsyncGenerator, Dict, Any
 
-# Replace FastAPI imports with TurboAPI
-from turboapi import TurboAPI
-# Remove specific response types, TurboAPI handles them differently
-# from fastapi import APIRouter
-# from fastapi.responses import JSONResponse, StreamingResponse
+# Remove TurboAPI import and instance, we will define routes in main.py
+# from turboapi import TurboAPI
 
 from .mlx.models import load_model
-from .schema import ChatCompletionRequest # Keep schema, assuming TurboAPI can use Pydantic or it will be adapted
+from .schema import ChatCompletionRequest # Keep schema for validation
 from .text_models import BaseTextModel
 
-# Instantiate TurboAPI instead of APIRouter
-chat_app = TurboAPI(title="MLX Engine Chat - Chat Module") # Renamed from app
+# Remove TurboAPI instance
+# chat_app = TurboAPI(title="MLX Engine Chat - Chat Module")
 
 
-# Update decorators to use 'chat_app' and remove 'response_model'
-@chat_app.post("/chat/completions")
-@chat_app.post("/v1/chat/completions")
+# Route handler function - decorators will be applied in main.py
 async def create_chat_completion(request): # Changed signature: receive raw request
     """Create a chat completion"""
     # Manually parse and validate the request body
@@ -37,17 +32,13 @@ async def create_chat_completion(request): # Changed signature: receive raw requ
         # Return dict directly, TurboAPI handles JSON conversion
         return completion.model_dump(exclude_none=True)
 
-    # Modify generator for TurboAPI streaming (assuming it handles SSE from async generator yielding dicts)
+    # Modify generator for TurboAPI streaming
     async def event_generator() -> AsyncGenerator[Dict[str, Any], None]:
         async for chunk in text_model.stream_generate(chat_request):
             yield chunk.model_dump(exclude_none=True) # Yield dicts directly
 
-        # TurboAPI might handle the stream end signal, or require a specific sentinel
-        # For now, we just end the generator. The [DONE] message might need explicit handling
-        # if the client relies on it and TurboAPI doesn't add it automatically.
+        # Stream termination handling might be needed depending on TurboAPI specifics
 
-    # Return the generator directly; TurboAPI should detect it and stream SSE
-    # We might need to explicitly set headers if TurboAPI doesn't default to event-stream
     headers = {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
