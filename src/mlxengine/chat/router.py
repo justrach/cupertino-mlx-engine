@@ -20,39 +20,43 @@ from .schema import (
     # ChatCompletionChunkChoice
     ResponseFormat, # Import ResponseFormat
     JsonSchemaFormat, # Import JsonSchemaFormat for nested deserialization
+    Tool,            # Import Tool for tool deserialization
+    Function,        # Import Function for nested tool deserialization
+    FunctionParameters, # Import FunctionParameters for deeply nested deserialization
 )
 from .text_models import BaseTextModel
+from ..utils.serialization import recursive_to_dict # Import the helper function
 
 router = APIRouter(tags=["chat—completions"])
 
 
 # --- Helper function for recursive serialization ---
-def recursive_to_dict(item: Any) -> Any:
-    """Recursively converts satya.Model instances to dictionaries."""
-    if isinstance(item, Model):
-        # Call .dict() on the model instance
-        try:
-            d = item.dict()
-        except AttributeError:
-             # Fallback if .dict() doesn't exist - adapt as needed for satya
-             # This example assumes fields are attributes or stored in __fields__
-             try:
-                 d = {f: getattr(item, f) for f in item.__fields__}
-             except AttributeError:
-                 # Last resort: return as is, hoping it's serializable or error later
-                 return item # Or raise an error?
-
-        # Recursively process the dictionary values
-        return recursive_to_dict(d)
-    elif isinstance(item, collections.abc.Mapping):
-        # If it's a dictionary-like object, process its values
-        return {k: recursive_to_dict(v) for k, v in item.items()}
-    elif isinstance(item, collections.abc.Sequence) and not isinstance(item, (str, bytes)):
-        # If it's a list/tuple-like object (but not string/bytes), process its elements
-        return [recursive_to_dict(elem) for elem in item]
-    else:
-        # Assume it's a primitive type (int, str, float, bool, None)
-        return item
+# def recursive_to_dict(item: Any) -> Any:
+#     """Recursively converts satya.Model instances to dictionaries."""
+#     if isinstance(item, Model):
+#         # Call .dict() on the model instance
+#         try:
+#             d = item.dict()
+#         except AttributeError:
+#              # Fallback if .dict() doesn't exist - adapt as needed for satya
+#              # This example assumes fields are attributes or stored in __fields__
+#              try:
+#                  d = {f: getattr(item, f) for f in item.__fields__}
+#              except AttributeError:
+#                  # Last resort: return as is, hoping it's serializable or error later
+#                  return item # Or raise an error?
+# 
+#         # Recursively process the dictionary values
+#         return recursive_to_dict(d)
+#     elif isinstance(item, collections.abc.Mapping):
+#         # If it's a dictionary-like object, process its values
+#         return {k: recursive_to_dict(v) for k, v in item.items()}
+#     elif isinstance(item, collections.abc.Sequence) and not isinstance(item, (str, bytes)):
+#         # If it's a list/tuple-like object (but not string/bytes), process its elements
+#         return [recursive_to_dict(elem) for elem in item]
+#     else:
+#         # Assume it's a primitive type (int, str, float, bool, None)
+#         return item
 # --- End Helper function ---
 
 
@@ -122,6 +126,75 @@ async def create_chat_completion(request: Request):
                      print(f"Error deserializing nested json_schema within existing ResponseFormat: {e_jsf}")
                      raise ValueError(f"Invalid json_schema dict within ResponseFormat object: {raw_response_format.json_schema}") from e_jsf
             # No further action needed if both outer and nested are typed
+
+        # Deserialize 'tools' and their nested 'function' -> 'parameters'
+        raw_tools = chat_request_data.get('tools')
+        if isinstance(raw_tools, list):
+            typed_tools = []
+            for tool_dict in raw_tools:
+                if isinstance(tool_dict, dict):
+                    # Handle nested 'function'
+                    function_dict = tool_dict.get('function')
+                    if isinstance(function_dict, dict):
+                        # Handle deeply nested 'parameters' within 'function'
+                        params_dict = function_dict.get('parameters')
+                        if isinstance(params_dict, dict):
+                            try:
+                                function_dict['parameters'] = FunctionParameters(**params_dict)
+                            except Exception as e_fp:
+                                print(f"Error deserializing function parameters: {e_fp}")
+                                raise ValueError(f"Invalid parameters structure in function: {params_dict}") from e_fp
+                        elif isinstance(params_dict, FunctionParameters):
+                            pass # Already typed
+
+                        # Now instantiate Function with potentially typed parameters
+                        try:
+                            tool_dict['function'] = Function(**function_dict)
+                        except Exception as e_f:
+                            print(f"Error deserializing function: {e_f}")
+                            raise ValueError(f"Invalid function structure in tool: {function_dict}") from e_f
+                    elif isinstance(function_dict, Function):
+                        # If function is already typed, still check its parameters
+                        if isinstance(function_dict.parameters, dict):
+                             try:
+                                function_dict.parameters = FunctionParameters(**function_dict.parameters)
+                             except Exception as e_fp_nested:
+                                 print(f"Error deserializing nested function parameters: {e_fp_nested}")
+                                 raise ValueError(f"Invalid parameters dict within Function object: {function_dict.parameters}") from e_fp_nested
+
+                    # Now instantiate Tool with potentially typed function
+                    try:
+                        typed_tools.append(Tool(**tool_dict))
+                    except Exception as e_t:
+                        print(f"Error deserializing tool: {e_t}")
+                        raise ValueError(f"Invalid tool structure: {tool_dict}") from e_t
+                elif isinstance(tool_dict, Tool):
+                    # If tool is already typed, perform nested checks just in case
+                    if isinstance(tool_dict.function, dict):
+                         # This case is less likely if outer is typed, but for robustness:
+                         function_dict_inner = tool_dict.function
+                         params_dict_inner = function_dict_inner.get('parameters')
+                         if isinstance(params_dict_inner, dict):
+                             try:
+                                 function_dict_inner['parameters'] = FunctionParameters(**params_dict_inner)
+                             except Exception as e_fp_deep:
+                                 print(f"Error deserializing deeply nested function parameters: {e_fp_deep}")
+                                 raise ValueError(f"Invalid parameters structure in function dict within Tool object: {params_dict_inner}") from e_fp_deep
+                         try:
+                             tool_dict.function = Function(**function_dict_inner)
+                         except Exception as e_f_inner:
+                             print(f"Error deserializing function dict within Tool object: {e_f_inner}")
+                             raise ValueError(f"Invalid function dict within Tool object: {function_dict_inner}") from e_f_inner
+                    elif isinstance(tool_dict.function, Function):
+                        # Check parameters within the already-typed Function
+                        if isinstance(tool_dict.function.parameters, dict):
+                             try:
+                                tool_dict.function.parameters = FunctionParameters(**tool_dict.function.parameters)
+                             except Exception as e_fp_nested_typed:
+                                 print(f"Error deserializing parameters dict within typed Function object: {e_fp_nested_typed}")
+                                 raise ValueError(f"Invalid parameters dict within Function object: {tool_dict.function.parameters}") from e_fp_nested_typed
+                    typed_tools.append(tool_dict) # Append the already typed (and potentially fixed) tool
+            chat_request_data['tools'] = typed_tools
 
         # Re-create the ChatCompletionRequest with fully typed nested models
         chat_request = ChatCompletionRequest(**chat_request_data)
